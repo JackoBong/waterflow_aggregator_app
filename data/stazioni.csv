@@ -1,5 +1,11 @@
-id_stazione,nome,fiume,lat,lon,bacino
-ST01,Ponte di Dignano,Tagliamento,46.0825,12.9231,Alpi Orientali
-ST02,Venzone,Tagliamento,46.3338,13.1336,Alpi Orientali
-ST03,Pontelagoscuro,Po,44.8883,11.6081,Fiume Po
-ST04,Ripetta,Tevere,41.9044,12.4744,Appennino Centrale
+id_stazione,codice_fvg,nome,fiume,lat,lon,bacino
+TAG_VEN,VENZ,Venzone,Tagliamento,46.3338,13.1336,Tagliamento
+TAG_DIG,PDIG,Ponte di Dignano,Tagliamento,46.0825,12.9231,Tagliamento
+TAG_LAT,LATI,Latisana,Tagliamento,45.7764,13.0019,Tagliamento
+FEL_MOG,MOGG,Moggio Udinese,Fella (affl. Tagliamento),46.4083,13.1950,Tagliamento
+ISO_GOR,GORI,Gorizia - Ponte Piuma,Isonzo,45.9522,13.6067,Isonzo
+ISO_GRA,GRAD,Gradisca d'Isonzo,Isonzo,45.8889,13.5042,Isonzo
+NAT_CIV,CIVID,Cividale del Friuli,Natisone (affl. Isonzo),46.0919,13.4319,Isonzo
+LIV_SAC,SACI,Sacile,Livenza,45.9536,12.5028,Livenza
+MED_POR,PORD,Pordenone,Noncello / Meduna,45.9569,12.6603,Livenza
+STE_PAL,PALA,Palazzolo dello Stella,Stella,45.8011,13.0794,Laguna di Marano
