@@ -1,1 +1,5 @@
-
+id_stazione,nome,fiume,lat,lon,bacino
+ST01,Ponte di Dignano,Tagliamento,46.0825,12.9231,Alpi Orientali
+ST02,Venzone,Tagliamento,46.3338,13.1336,Alpi Orientali
+ST03,Pontelagoscuro,Po,44.8883,11.6081,Fiume Po
+ST04,Ripetta,Tevere,41.9044,12.4744,Appennino Centrale
