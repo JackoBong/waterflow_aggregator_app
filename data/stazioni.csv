@@ -1,11 +1,27 @@
-id_stazione,codice_fvg,nome,fiume,lat,lon,bacino
-TAG_VEN,VENZ,Venzone,Tagliamento,46.3338,13.1336,Tagliamento
-TAG_DIG,PDIG,Ponte di Dignano,Tagliamento,46.0825,12.9231,Tagliamento
-TAG_LAT,LATI,Latisana,Tagliamento,45.7764,13.0019,Tagliamento
-FEL_MOG,MOGG,Moggio Udinese,Fella (affl. Tagliamento),46.4083,13.1950,Tagliamento
-ISO_GOR,GORI,Gorizia - Ponte Piuma,Isonzo,45.9522,13.6067,Isonzo
-ISO_GRA,GRAD,Gradisca d'Isonzo,Isonzo,45.8889,13.5042,Isonzo
-NAT_CIV,CIVID,Cividale del Friuli,Natisone (affl. Isonzo),46.0919,13.4319,Isonzo
-LIV_SAC,SACI,Sacile,Livenza,45.9536,12.5028,Livenza
-MED_POR,PORD,Pordenone,Noncello / Meduna,45.9569,12.6603,Livenza
-STE_PAL,PALA,Palazzolo dello Stella,Stella,45.8011,13.0794,Laguna di Marano
+id_stazione,nome,fiume,lat,lon,bacino,a,h0,b
+TAG_FOR,Forni di Sopra,Tagliamento,46.4192,12.5856,Tagliamento,65.0,0.10,1.80
+TAG_TOL,Tolmezzo - Ponte Avons,Tagliamento,46.3958,13.0186,Tagliamento,120.0,0.15,1.85
+TAG_VEN,Venzone,Tagliamento,46.3338,13.1336,Tagliamento,145.0,0.10,1.85
+TAG_DIG,Ponte di Dignano,Tagliamento,46.0825,12.9231,Tagliamento,160.0,0.15,1.80
+TAG_LAT,Latisana,Tagliamento,45.7764,13.0019,Tagliamento,120.0,0.50,1.75
+FEL_PON,Pontebba,Fella,46.5064,13.3069,Tagliamento,55.0,0.10,1.75
+FEL_MOG,Moggio Udinese,Fella,46.4083,13.1950,Tagliamento,85.0,0.10,1.80
+BUT_PAL,Paluzza,But,46.5314,13.0189,Tagliamento,45.0,0.10,1.75
+DEG_OVE,Ovaro,Degano,46.4828,12.8644,Tagliamento,50.0,0.10,1.75
+ISO_GOR,Gorizia - Ponte Piuma,Isonzo,45.9522,13.6067,Isonzo,110.0,0.20,1.75
+ISO_GRA,Gradisca d'Isonzo,Isonzo,45.8889,13.5042,Isonzo,130.0,0.25,1.75
+ISO_TUR,Turriaco / Pieris,Isonzo,45.8214,13.4436,Isonzo,135.0,0.30,1.75
+TOR_TAR,Tarcento,Torre,46.2161,13.2186,Isonzo,40.0,0.10,1.70
+TOR_STR,Strassoldo / Trivignano,Torre,45.9219,13.3325,Isonzo,55.0,0.15,1.70
+NAT_PUL,Pulfero,Natisone,46.1731,13.4856,Isonzo,35.0,0.10,1.70
+NAT_CIV,Cividale del Friuli,Natisone,46.0919,13.4319,Isonzo,45.0,0.10,1.70
+JUD_COR,Cormons / Dolegna,Judrio,46.0044,13.4836,Isonzo,25.0,0.10,1.65
+LIV_POL,Polcenigo / Gorgazzo,Livenza,46.0289,12.4986,Livenza,45.0,0.20,1.65
+LIV_SAC,Sacile,Livenza,45.9536,12.5028,Livenza,55.0,0.30,1.65
+LIV_BRU,Brugnera / Tremeacque,Livenza,45.8950,12.5361,Livenza,75.0,0.35,1.65
+MED_COL,Colle / Sequals,Meduna,46.1683,12.8125,Livenza,65.0,0.15,1.75
+MED_POR,Pordenone,Meduna / Noncello,45.9569,12.6603,Livenza,40.0,0.20,1.65
+CEL_MON,Montereale Valcellina,Cellina,46.1536,12.6486,Livenza,60.0,0.15,1.75
+STE_PAL,Palazzolo dello Stella,Stella,45.8011,13.0794,Laguna di Marano,25.0,0.20,1.55
+COR_POZ,Pozzuolo del Friuli,Cormor,45.9914,13.1961,Laguna di Marano,20.0,0.10,1.60
+TIM_SGI,San Giovanni di Duino,Timavo,45.7867,13.5914,Carso / Timavo,35.0,0.20,1.60
