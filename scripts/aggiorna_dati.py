@@ -1,163 +1,90 @@
 import os
+import time
 import requests
 import pandas as pd
-import xml.etree.ElementTree as ET
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timezone
 
 FILE_STAZIONI = "data/stazioni.csv"
-FILE_PORTATE = "data/portate.csv"
+FILE_STORICO = "data/storico_fvg.parquet"
+FLOOD_API_URL = "https://flood-api.open-meteo.com/v1/flood"
 
-BASE_HIS = "http://hiscentral.isprambiente.gov.it/hiscentral/webservices/hiscentral.asmx"
+def calcola_livello_m(portata, a, h0, b):
+    """Stima il livello idrometrico (m) dalla portata tramite scala di deflusso inversa."""
+    if portata is None or pd.isna(portata) or portata <= 0:
+        return round(float(h0), 2)
+    livello = float(h0) + ((float(portata) / float(a)) ** (1.0 / float(b)))
+    return round(livello, 2)
 
-# Bounding box del Friuli-Venezia Giulia (Tagliamento, Isonzo, Livenza, Stella)
-BBOX_FVG = {
-    "xmin": 12.30,
-    "xmax": 13.90,
-    "ymin": 45.60,
-    "ymax": 46.65
-}
-
-def scopri_serie_fvg():
-    """Interroga il catalogo ISPRA HIS Central nell'area del FVG per trovare stazioni e variabili reali."""
-    url = f"{BASE_HIS}/GetSeriesCatalogForBox2"
+def scarica_serie_stazione(row, start_date, end_date):
     params = {
-        "xmin": BBOX_FVG["xmin"],
-        "xmax": BBOX_FVG["xmax"],
-        "ymin": BBOX_FVG["ymin"],
-        "ymax": BBOX_FVG["ymax"],
-        "conceptKeyword": "",
-        "networkIDs": "",
-        "beginDate": "2020-01-01",
-        "endDate": datetime.now(timezone.utc).strftime("%Y-%m-%d")
+        "latitude": row["lat"],
+        "longitude": row["lon"],
+        "daily": "river_discharge",
+        "start_date": start_date,
+        "end_date": end_date
     }
-    resp = requests.get(url, params=params, timeout=45)
+    resp = requests.get(FLOOD_API_URL, params=params, timeout=45)
     resp.raise_for_status()
-    
-    root = ET.fromstring(resp.content)
-    catalogo = []
-    
-    for series in root.iter():
-        if series.tag.endswith("SeriesRecord"):
-            rec = {}
-            for child in series:
-                tag_name = child.tag.split("}")[-1]
-                rec[tag_name] = child.text.strip() if child.text else ""
-            
-            var_name = rec.get("VarName", "").lower()
-            # Filtra per portate (discharge/portata) o livelli idrometrici (level/livello/altezza)
-            if any(k in var_name for k in ["portat", "discharg", "livell", "idrometr", "stage", "height"]):
-                catalogo.append({
-                    "id_stazione": rec.get("SiteCode", "").replace(":", "_"),
-                    "codice_ispra": rec.get("SiteCode", ""),
-                    "variabile_ispra": rec.get("VarCode", ""),
-                    "nome_variabile": rec.get("VarName", ""),
-                    "nome": rec.get("SiteName", "Stazione FVG"),
-                    "fiume": rec.get("SiteName", "").split("-")[0].strip(),
-                    "lat": float(rec.get("Latitude", 0)),
-                    "lon": float(rec.get("Longitude", 0)),
-                    "bacino": "Alpi Orientali (FVG)",
-                    "serv_url": rec.get("ServURL", "")
-                })
-    return pd.DataFrame(catalogo)
+    data_json = resp.json()
 
-def scarica_valori_wml(serv_url, site_code, var_code, start_date, end_date):
-    """Scarica i valori dal servizio WaterOneFlow specifico della rete."""
-    # Costruisce l'endpoint REST GetValuesObject dal WSDL/ServURL della rete
-    base_url = serv_url.split("?")[0]
-    if not base_url.endswith("GetValuesObject"):
-        base_url = base_url.rstrip("/") + "/GetValuesObject"
-        
-    params = {
-        "location": site_code,
-        "variable": var_code,
-        "startDate": start_date,
-        "endDate": end_date,
-        "authToken": ""
-    }
-    resp = requests.get(base_url, params=params, timeout=30)
-    resp.raise_for_status()
-    
-    root = ET.fromstring(resp.content)
-    valori = []
-    for elem in root.iter():
-        if elem.tag.endswith("value") and elem.text is not None:
-            dt = elem.attrib.get("dateTime", "")[:10]
-            try:
-                val = float(elem.text.strip())
-                if val > -9000 and dt:
-                    valori.append((dt, val))
-            except ValueError:
-                continue
-    return valori
+    daily = data_json.get("daily", {})
+    date_list = daily.get("time", [])
+    discharge_list = daily.get("river_discharge", [])
+
+    righe = []
+    for dt, val in zip(date_list, discharge_list):
+        if val is not None:
+            q = round(float(val), 2)
+            h = calcola_livello_m(q, row["a"], row["h0"], row["b"])
+            righe.append({
+                "id_stazione": row["id_stazione"],
+                "data": dt,
+                "portata_m3s": q,
+                "livello_m": h
+            })
+    return pd.DataFrame(righe)
 
 def aggiorna():
-    print("Ricerca stazioni idrometriche reali in FVG su ISPRA HIS Central...")
-    try:
-        df_cat = scopri_serie_fvg()
-    except Exception as e:
-        print(f"Errore interrogazione catalogo ISPRA: {e}")
-        return
+    stazioni = pd.read_csv(FILE_STAZIONI)
+    oggi_str = datetime.now(timezone.utc).strftime("%Y-%m-%d")
 
-    print(f"Serie idrometriche trovate nel catalogo FVG: {len(df_cat)}")
-    if df_cat.empty:
-        return
-
-    # Mantieni una serie per stazione (preferendo la portata se disponibile, altrimenti il livello)
-    df_cat["is_portata"] = df_cat["nome_variabile"].str.lower().str.contains("portat|discharg")
-    df_cat = df_cat.sort_values(by=["is_portata"], ascending=False).drop_duplicates(subset=["id_stazione"])
-    
-    # Limita alle prime 15 stazioni principali per mantenere veloce l'esecuzione
-    df_cat = df_cat.head(15)
-
-    # Salva l'anagrafica reale in data/stazioni.csv
-    cols_staz = ["id_stazione", "codice_ispra", "variabile_ispra", "nome", "fiume", "lat", "lon", "bacino"]
-    df_cat[cols_staz].to_csv(FILE_STAZIONI, index=False)
-    print(f"Salvata anagrafica con {len(df_cat)} stazioni reali in {FILE_STAZIONI}.")
-
-    # Carica eventuale storico esistente
-    if os.path.exists(FILE_PORTATE):
-        df_storico = pd.read_csv(FILE_PORTATE)
-        df_storico = df_storico[df_storico["id_stazione"].isin(df_cat["id_stazione"])]
+    if os.path.exists(FILE_STORICO):
+        df_storico = pd.read_parquet(FILE_STORICO)
+        df_storico = df_storico[df_storico["id_stazione"].isin(stazioni["id_stazione"])]
     else:
-        df_storico = pd.DataFrame(columns=["id_stazione", "data", "portata_m3s"])
+        df_storico = pd.DataFrame(columns=["id_stazione", "data", "portata_m3s", "livello_m"])
 
-    # Scarica gli ultimi 30 giorni di dati reali
-    oggi = datetime.now(timezone.utc).date()
-    start_str = (oggi - timedelta(days=30)).strftime("%Y-%m-%d")
-    end_str = oggi.strftime("%Y-%m-%d")
+    stazioni_gia_presenti = set(df_storico["id_stazione"].unique())
+    lista_nuovi = [df_storico]
 
-    righe_nuove = []
-    for _, row in df_cat.iterrows():
+    for _, row in stazioni.iterrows():
+        id_staz = row["id_stazione"]
+        # Se la stazione non ha ancora lo storico, scarica dal 1984-01-01 ad oggi;
+        # altrimenti scarica solo gli ultimi 30 giorni per l'aggiornamento quotidiano.
+        if id_staz not in stazioni_gia_presenti:
+            start_date = "1984-01-01"
+            modo = "STORICO COMPLETO (1984-oggi)"
+        else:
+            start_date = (pd.Timestamp.now(tz="UTC") - pd.Timedelta(days=30)).strftime("%Y-%m-%d")
+            modo = "AGGIORNAMENTO (ultimi 30 gg)"
+
         try:
-            serie = scarica_valori_wml(
-                row["serv_url"],
-                row["codice_ispra"],
-                row["variabile_ispra"],
-                start_str,
-                end_str
-            )
-            for dt, val in serie:
-                righe_nuove.append({
-                    "id_stazione": row["id_stazione"],
-                    "data": dt,
-                    "portata_m3s": round(val, 2)
-                })
-            print(f"[{row['nome']}] Scaricati {len(serie)} valori.")
+            df_staz = scarica_serie_stazione(row, start_date, oggi_str)
+            if not df_staz.empty:
+                lista_nuovi.append(df_staz)
+                print(f"[{id_staz} - {row['nome']}] {modo}: {len(df_staz)} giorni scaricati.")
+            time.sleep(0.4)  # Pausa cortesia verso l'API
         except Exception as e:
-            print(f"[{row['nome']}] Nessun dato recente ({e})")
+            print(f"[{id_staz}] Errore: {e}")
 
-    df_nuovi = pd.DataFrame(righe_nuove, columns=["id_stazione", "data", "portata_m3s"])
-    df_finale = pd.concat([df_storico, df_nuovi], ignore_index=True)
-
+    df_finale = pd.concat(lista_nuovi, ignore_index=True)
     if not df_finale.empty:
         df_finale["data"] = pd.to_datetime(df_finale["data"]).dt.strftime("%Y-%m-%d")
-        # Media giornaliera nel caso la stazione trasmetta dati orari/sub-orari
-        df_finale = df_finale.groupby(["id_stazione", "data"], as_index=False)["portata_m3s"].mean()
-        df_finale["portata_m3s"] = df_finale["portata_m3s"].round(2)
-        df_finale = df_finale.sort_values(by=["data", "id_stazione"])
+        df_finale = df_finale.drop_duplicates(subset=["id_stazione", "data"], keep="last")
+        df_finale = df_finale.sort_values(by=["id_stazione", "data"])
 
-    df_finale.to_csv(FILE_PORTATE, index=False)
-    print(f"Database aggiornato: {len(df_finale)} righe totali in {FILE_PORTATE}.")
+    df_finale.to_parquet(FILE_STORICO, index=False, compression="snappy")
+    print(f"Database Parquet salvato: {len(df_finale):,} righe totali in {FILE_STORICO}.")
 
 if __name__ == "__main__":
     aggiorna()
