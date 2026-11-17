@@ -1,33 +1,28 @@
 name: Aggiornamento Giornaliero Portate
 
 on:
-  # 1. Esecuzione automatica ogni giorno alle 06:30 UTC (07:30 ora solare italiana)
   schedule:
     - cron: '30 6 * * *'
-  
-  # 2. Ti permette di avviarlo manualmente con un clic dalla scheda "Actions"
   workflow_dispatch:
 
 jobs:
   aggiorna-db:
     runs-on: ubuntu-latest
-    
-    # Permesso necessario per poter salvare il CSV aggiornato nella repository
     permissions:
       contents: write
 
     steps:
       - name: Scarica la repository
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - name: Configura Python
-        uses: actions/setup-python@v5
+        uses: actions/setup-python@v6
         with:
-          python-version: '3.11'
+          python-version: '3.12'
 
       - name: Installa dipendenze
         run: |
-          pip install pandas requests
+          pip install pandas pyarrow requests
 
       - name: Esegui script di aggiornamento
         run: |
@@ -37,5 +32,5 @@ jobs:
         run: |
           git config --local user.email "github-actions[bot]@users.noreply.github.com"
           git config --local user.name "github-actions[bot]"
-          git add data/portate.csv
-          git diff --quiet && git diff --staged --quiet || (git commit -m "Aggiornamento automatico portate $(date +'%Y-%m-%d')" && git push)
+          git add data/
+          git diff --quiet && git diff --staged --quiet || (git commit -m "Aggiornamento automatico storico FVG $(date +'%Y-%m-%d')" && git push)
